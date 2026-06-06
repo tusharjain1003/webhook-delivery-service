@@ -3,6 +3,7 @@ import { createDelivery, forceDeliveryStatus, recoverInProgressDeliveriesOnStart
 import { listAttemptsByDelivery } from '../../src/models/deliveryAttempt';
 import { createEvent } from '../../src/models/event';
 import { createSubscription } from '../../src/models/subscription';
+import { verifySignature } from '../../src/signing/hmac';
 import { apiFetch, setupIntegration, startSubscriber, teardownIntegration, waitForAttemptCount, waitForDeliveryStatus, type TestContext } from './helpers';
 
 describe('delivery worker', () => {
@@ -34,6 +35,14 @@ describe('delivery worker', () => {
     const delivery = await waitForDeliveryStatus(event.id, 'success');
     expect(subscriber.requests).toHaveLength(1);
     expect(subscriber.requests[0].headers['x-webhook-signature']).toMatch(/^sha256=/);
+    expect(
+      verifySignature(
+        subscriber.requests[0].rawBody,
+        String(subscriber.requests[0].headers['x-webhook-timestamp']),
+        String(subscriber.requests[0].headers['x-webhook-signature']),
+        'test-secret'
+      )
+    ).toBe(true);
     expect(listAttemptsByDelivery(delivery.id)).toHaveLength(1);
     await subscriber.close();
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesPattern } from '../../src/utils/patternMatch';
+import { isSupportedPattern, matchesPattern } from '../../src/utils/patternMatch';
 
 describe('matchesPattern', () => {
   it('matches exact event types', () => {
@@ -19,5 +19,13 @@ describe('matchesPattern', () => {
     expect(matchesPattern('order.created', '*.created')).toBe(false);
     expect(matchesPattern('', '')).toBe(true);
     expect(matchesPattern('', '*')).toBe(true);
+  });
+
+  it('validates supported subscription patterns', () => {
+    expect(isSupportedPattern('*')).toBe(true);
+    expect(isSupportedPattern('order.created')).toBe(true);
+    expect(isSupportedPattern('order.*')).toBe(true);
+    expect(isSupportedPattern('order*')).toBe(false);
+    expect(isSupportedPattern('*.created')).toBe(false);
   });
 });

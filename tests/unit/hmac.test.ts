@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { describe, expect, it } from 'vitest';
-import { buildSignatureHeader, signPayload } from '../../src/signing/hmac';
+import { buildSignatureHeader, signPayload, verifySignature } from '../../src/signing/hmac';
 
 describe('hmac signing', () => {
   it('generates deterministic signatures', () => {
@@ -12,5 +12,9 @@ describe('hmac signing', () => {
 
   it('changes when the secret changes', () => {
     expect(signPayload('{"test":true}', 1700000000, 'secret123')).not.toBe(signPayload('{"test":true}', 1700000000, 'other'));
+  });
+
+  it('returns false for malformed signatures instead of throwing', () => {
+    expect(verifySignature('{"test":true}', '1700000000', 'sha256=bad', 'secret123')).toBe(false);
   });
 });

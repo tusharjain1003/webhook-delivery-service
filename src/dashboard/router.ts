@@ -3,6 +3,7 @@ import { getEvent, listEventsWithSummaries } from '../models/event';
 import { listDeliveriesByEvent, resetDeliveryForManualRetry } from '../models/delivery';
 import { listAttemptsByDelivery } from '../models/deliveryAttempt';
 import { createSubscription, deactivateSubscription, listSubscriptions } from '../models/subscription';
+import { isSupportedPattern } from '../utils/patternMatch';
 import { eventDetailPage, eventsPage, subscriptionsPage } from './templates';
 
 export const dashboardRouter = Router();
@@ -34,7 +35,15 @@ dashboardRouter.post('/dashboard/subscriptions', (req, res) => {
       ? req.body.eventTypes.split(',').map((value: string) => value.trim()).filter(Boolean)
       : [];
 
-  if (url && eventTypes.length > 0) {
+  let validUrl = false;
+  try {
+    new URL(url);
+    validUrl = true;
+  } catch {
+    validUrl = false;
+  }
+
+  if (validUrl && eventTypes.length > 0 && eventTypes.every(isSupportedPattern)) {
     createSubscription({ url, secret, eventTypes });
   }
   res.redirect('/');

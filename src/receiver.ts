@@ -1,5 +1,5 @@
-import crypto from 'crypto';
 import express from 'express';
+import { verifySignature } from './signing/hmac';
 
 const port = parseInt(process.env.RECEIVER_PORT || '4000', 10);
 const status = parseInt(process.env.RECEIVER_STATUS || '200', 10);
@@ -13,8 +13,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
 
   if (secret) {
     if (!signature || !timestamp) return res.status(401).send('Missing signature');
-    const expected = `sha256=${crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex')}`;
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    if (!verifySignature(rawBody, timestamp, signature, secret)) {
       return res.status(401).send('Invalid signature');
     }
   }

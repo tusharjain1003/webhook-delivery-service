@@ -12,3 +12,7 @@ export function matchesPattern(eventType: string, pattern: string): boolean {
 export function matchesAnyPattern(eventType: string, patterns: string[]): boolean {
   return patterns.some((pattern) => matchesPattern(eventType, pattern));
 }
+
+export function isSupportedPattern(pattern: string): boolean {
+  return pattern === '*' || !pattern.includes('*') || pattern.endsWith('.*');
+}

@@ -38,6 +38,14 @@ describe('api', () => {
     expect(deleted.status).toBe(204);
   });
 
+  it('rejects unsupported wildcard patterns', async () => {
+    const response = await apiFetch(ctx.baseUrl, '/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ url: 'http://example.com/webhook', eventTypes: ['order*'] })
+    });
+    expect(response.status).toBe(400);
+  });
+
   it('ingests an event and queues matching deliveries', async () => {
     await apiFetch(ctx.baseUrl, '/api/subscriptions', {
       method: 'POST',

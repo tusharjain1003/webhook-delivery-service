@@ -127,7 +127,7 @@ stateDiagram-v2
   exhausted --> pending: manual retry
 ```
 
-Manual retry is only allowed for `failed` and `exhausted` deliveries. It resets `attempt_count` to `0` and sets `next_attempt_at` to now, while preserving all previous attempt rows.
+Manual retry is only allowed for `failed` and `exhausted` deliveries. It resets `attempt_count` to `0` and sets `next_attempt_at` to now, while preserving all previous attempt rows. Attempt numbers are therefore per automatic retry cycle; after a manual retry, the dashboard may show a new `#1` attempt after older attempt rows.
 
 ## Retry And Failure Rules
 

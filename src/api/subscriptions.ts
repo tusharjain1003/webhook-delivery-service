@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createSubscription, deactivateSubscription, getSubscription, listSubscriptions } from '../models/subscription';
-import { isPlainObject, requireJson } from './validation';
+import { isSupportedPattern } from '../utils/patternMatch';
+import { requireJson } from './validation';
 
 export const subscriptionsRouter = Router();
 
@@ -11,6 +12,9 @@ subscriptionsRouter.post('/', (req, res) => {
   if (secret !== undefined && typeof secret !== 'string') return res.status(400).json({ error: 'secret must be a string' });
   if (!Array.isArray(eventTypes) || eventTypes.length === 0 || !eventTypes.every((item) => typeof item === 'string' && item.length > 0)) {
     return res.status(400).json({ error: 'eventTypes must be a non-empty array of strings' });
+  }
+  if (!eventTypes.every(isSupportedPattern)) {
+    return res.status(400).json({ error: 'eventTypes may only use exact matches, "*", or single-level suffix wildcards like "order.*"' });
   }
   try {
     new URL(url);

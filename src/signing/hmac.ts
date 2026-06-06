@@ -10,5 +10,8 @@ export function buildSignatureHeader(payload: string, timestamp: number, secret:
 
 export function verifySignature(payload: string, timestamp: string, signature: string, secret: string): boolean {
   const expected = buildSignatureHeader(payload, Number(timestamp), secret);
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  const given = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (given.length !== expectedBuffer.length) return false;
+  return crypto.timingSafeEqual(given, expectedBuffer);
 }

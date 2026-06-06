@@ -1,7 +1,6 @@
 import { config } from '../config';
 import { getDb } from '../db/connection';
 import type { Delivery, DeliveryStatus, DeliverySummary, DeliveryWithSubscription } from '../types';
-import { nowSqlite } from '../utils/timestamp';
 import { mapDelivery, mapDeliveryWithSubscription } from './mappers';
 
 const emptySummary: DeliverySummary = {

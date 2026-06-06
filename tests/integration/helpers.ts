@@ -1,6 +1,5 @@
 import http from 'http';
 import express from 'express';
-import { afterEach, beforeEach } from 'vitest';
 import { closeDb, openDb } from '../../src/db/connection';
 import { initializeSchema } from '../../src/db/schema';
 import { DeliveryWorker } from '../../src/worker/deliveryWorker';
@@ -44,12 +43,19 @@ export async function apiFetch(baseUrl: string, path: string, init: RequestInit 
   });
 }
 
-export async function startSubscriber(statusCode: number): Promise<{ url: string; requests: any[]; close: () => Promise<void> }> {
-  const requests: any[] = [];
+export interface SubscriberRequest {
+  headers: http.IncomingHttpHeaders;
+  body: unknown;
+  rawBody: string;
+}
+
+export async function startSubscriber(statusCode: number): Promise<{ url: string; requests: SubscriberRequest[]; close: () => Promise<void> }> {
+  const requests: SubscriberRequest[] = [];
   const app = express();
-  app.use(express.json());
+  app.use(express.raw({ type: 'application/json' }));
   app.post('/webhook', (req, res) => {
-    requests.push({ headers: req.headers, body: req.body });
+    const rawBody = req.body.toString('utf8');
+    requests.push({ headers: req.headers, rawBody, body: JSON.parse(rawBody) });
     res.status(statusCode).json({ ok: statusCode >= 200 && statusCode < 300 });
   });
   const server = await new Promise<http.Server>((resolve) => {

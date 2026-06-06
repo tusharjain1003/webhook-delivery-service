@@ -10,7 +10,7 @@ I chose an in-process async worker that claims pending deliveries with `UPDATE .
 
 ## Retry Policy
 
-I chose exponential backoff with jitter, retrying network failures, timeouts, 408, 429, and 5xx responses. I considered retrying all failures, but rejected that because most 4xx responses indicate a permanent client/configuration error. Manual retry resets `attempt_count` to zero while preserving previous `delivery_attempts`, so the operator gets a fresh retry window without losing audit history.
+I chose exponential backoff with jitter, retrying network failures, timeouts, 408, 429, and 5xx responses. I considered retrying all failures, but rejected that because most 4xx responses indicate a permanent client/configuration error. Manual retry resets `attempt_count` to zero while preserving previous `delivery_attempts`, so the operator gets a fresh retry window without losing audit history. The tradeoff is that attempt numbers are per retry cycle after manual retry, while the immutable log still shows the full lifetime history.
 
 ## Payload Signing
 
