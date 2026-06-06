@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSubscription, deactivateSubscription, getSubscription, listSubscriptions } from '../models/subscription';
+import { createSubscription, deactivateSubscription, getSubscription, listSubscriptions, toPublicSubscription } from '../models/subscription';
 import { isSupportedPattern } from '../utils/patternMatch';
 import { requireJson } from './validation';
 
@@ -22,17 +22,17 @@ subscriptionsRouter.post('/', (req, res) => {
     return res.status(400).json({ error: 'url must be a valid URL' });
   }
   const subscription = createSubscription({ url, secret, eventTypes });
-  res.status(201).json(subscription);
+  res.status(201).json(toPublicSubscription(subscription));
 });
 
 subscriptionsRouter.get('/', (_req, res) => {
-  res.json(listSubscriptions());
+  res.json(listSubscriptions().map(toPublicSubscription));
 });
 
 subscriptionsRouter.get('/:id', (req, res) => {
   const subscription = getSubscription(req.params.id);
   if (!subscription) return res.status(404).json({ error: 'Subscription not found' });
-  res.json(subscription);
+  res.json(toPublicSubscription(subscription));
 });
 
 subscriptionsRouter.delete('/:id', (req, res) => {

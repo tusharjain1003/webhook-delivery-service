@@ -1,4 +1,4 @@
-import type { DeliveryWithAttempts, EventRecord, EventWithSummary, Subscription } from '../types';
+import type { DeliveryWithAttempts, EventRecord, EventWithSummary, PublicSubscription } from '../types';
 import { styles } from './styles';
 
 function escapeHtml(value: unknown): string {
@@ -34,13 +34,14 @@ export function layout(title: string, content: string): string {
 </html>`;
 }
 
-export function subscriptionsPage(subscriptions: Subscription[]): string {
+export function subscriptionsPage(subscriptions: PublicSubscription[]): string {
   const rows = subscriptions
     .map(
       (subscription) => `<tr>
         <td class="mono" title="${escapeHtml(subscription.id)}">${shortId(subscription.id)}</td>
         <td class="mono">${escapeHtml(subscription.url)}</td>
         <td>${subscription.eventTypes.map(escapeHtml).join(', ')}</td>
+        <td>${subscription.hasSecret ? 'yes' : 'no'}</td>
         <td>${subscription.active ? badge('success') : badge('inactive')}</td>
         <td>${escapeHtml(subscription.createdAt)}</td>
         <td>
@@ -66,8 +67,8 @@ export function subscriptionsPage(subscriptions: Subscription[]): string {
       </form>
     </section>
     <table>
-      <thead><tr><th>ID</th><th>URL</th><th>Event Types</th><th>Status</th><th>Created</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6" class="muted">No subscriptions yet.</td></tr>'}</tbody>
+      <thead><tr><th>ID</th><th>URL</th><th>Event Types</th><th>Secret</th><th>Status</th><th>Created</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" class="muted">No subscriptions yet.</td></tr>'}</tbody>
     </table>`
   );
 }

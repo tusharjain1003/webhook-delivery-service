@@ -37,6 +37,7 @@ SQLite 3.35.0+ is required because the worker uses `UPDATE ... RETURNING` to ato
 - Persists subscriptions, events, delivery state, and every delivery attempt to SQLite.
 - Recovers `in_progress` deliveries on startup for at-least-once delivery semantics.
 - Provides a dashboard for subscriptions, events, delivery attempts, and manual retry.
+- Treats subscription secrets as write-only in public API and dashboard responses.
 
 ## Architecture
 
@@ -178,6 +179,8 @@ signature = HMAC_SHA256(secret, signed_content)
 ```
 
 Subscribers should verify against the raw request body, not a parsed and re-serialized object, because JSON formatting or key order can change.
+
+Subscription secrets are accepted on create and stored for signing, but public subscription responses expose only `hasSecret: true` instead of returning the secret value.
 
 ## Event Matching
 

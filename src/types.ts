@@ -10,6 +10,16 @@ export interface Subscription {
   updatedAt: string;
 }
 
+export interface PublicSubscription {
+  id: string;
+  url: string;
+  hasSecret: boolean;
+  eventTypes: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EventRecord {
   id: string;
   eventType: string;

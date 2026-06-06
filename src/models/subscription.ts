@@ -1,5 +1,5 @@
 import { getDb } from '../db/connection';
-import type { Subscription } from '../types';
+import type { PublicSubscription, Subscription } from '../types';
 import { matchesAnyPattern } from '../utils/patternMatch';
 import { mapSubscription } from './mappers';
 
@@ -36,4 +36,16 @@ export function deactivateSubscription(id: string): boolean {
 
 export function getActiveSubscriptionsForEventType(eventType: string): Subscription[] {
   return listSubscriptions().filter((subscription) => matchesAnyPattern(eventType, subscription.eventTypes));
+}
+
+export function toPublicSubscription(subscription: Subscription): PublicSubscription {
+  return {
+    id: subscription.id,
+    url: subscription.url,
+    hasSecret: Boolean(subscription.secret),
+    eventTypes: subscription.eventTypes,
+    active: subscription.active,
+    createdAt: subscription.createdAt,
+    updatedAt: subscription.updatedAt
+  };
 }

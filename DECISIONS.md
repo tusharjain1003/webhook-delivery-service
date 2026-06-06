@@ -16,6 +16,8 @@ I chose exponential backoff with jitter, retrying network failures, timeouts, 40
 
 I chose HMAC-SHA256 over the exact JSON string sent on the wire, using `timestamp.body` as the signed content. I considered signing parsed payload fields, but rejected that because JSON key order and whitespace can change after parsing. The tradeoff is that subscriber implementations need raw-body access, which is documented in the README.
 
+Secrets are write-only through public surfaces. I considered returning them in subscription responses because this is a local take-home app, but rejected that because redacting secrets is a small implementation cost and a useful security signal. API and dashboard reads expose `hasSecret` instead.
+
 ## Dashboard Scope
 
 I chose server-rendered HTML with Express templates. I considered React and Vite, but rejected them because frontend polish is not the grading target and a separate build step would add complexity without improving delivery correctness. The dashboard is unauthenticated by design for this local take-home; API routes remain protected with `X-API-Key`.

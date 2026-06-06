@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { getEvent, listEventsWithSummaries } from '../models/event';
 import { listDeliveriesByEvent, resetDeliveryForManualRetry } from '../models/delivery';
 import { listAttemptsByDelivery } from '../models/deliveryAttempt';
-import { createSubscription, deactivateSubscription, listSubscriptions } from '../models/subscription';
+import { createSubscription, deactivateSubscription, listSubscriptions, toPublicSubscription } from '../models/subscription';
 import { isSupportedPattern } from '../utils/patternMatch';
 import { eventDetailPage, eventsPage, subscriptionsPage } from './templates';
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get('/', (_req, res) => {
-  res.send(subscriptionsPage(listSubscriptions()));
+  res.send(subscriptionsPage(listSubscriptions().map(toPublicSubscription)));
 });
 
 dashboardRouter.get('/events', (req, res) => {

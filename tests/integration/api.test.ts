@@ -23,16 +23,24 @@ describe('api', () => {
   it('creates, lists, gets, and deactivates subscriptions', async () => {
     const created = await apiFetch(ctx.baseUrl, '/api/subscriptions', {
       method: 'POST',
-      body: JSON.stringify({ url: 'http://example.com/webhook', eventTypes: ['order.*'] })
+      body: JSON.stringify({ url: 'http://example.com/webhook', secret: 'super-secret', eventTypes: ['order.*'] })
     });
     expect(created.status).toBe(201);
     const subscription = await created.json();
+    expect(subscription).not.toHaveProperty('secret');
+    expect(subscription.hasSecret).toBe(true);
 
     const listed = await apiFetch(ctx.baseUrl, '/api/subscriptions');
-    expect(await listed.json()).toHaveLength(1);
+    const subscriptions = await listed.json();
+    expect(subscriptions).toHaveLength(1);
+    expect(subscriptions[0]).not.toHaveProperty('secret');
+    expect(subscriptions[0].hasSecret).toBe(true);
 
     const fetched = await apiFetch(ctx.baseUrl, `/api/subscriptions/${subscription.id}`);
     expect(fetched.status).toBe(200);
+    const fetchedSubscription = await fetched.json();
+    expect(fetchedSubscription).not.toHaveProperty('secret');
+    expect(fetchedSubscription.hasSecret).toBe(true);
 
     const deleted = await apiFetch(ctx.baseUrl, `/api/subscriptions/${subscription.id}`, { method: 'DELETE' });
     expect(deleted.status).toBe(204);
