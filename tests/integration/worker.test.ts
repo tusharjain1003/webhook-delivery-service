@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { config } from '../../src/config';
 import { createDelivery, forceDeliveryStatus, recoverInProgressDeliveriesOnStartup } from '../../src/models/delivery';
 import { listAttemptsByDelivery } from '../../src/models/deliveryAttempt';
 import { createEvent } from '../../src/models/event';
@@ -8,15 +9,17 @@ import { apiFetch, setupIntegration, startSubscriber, teardownIntegration, waitF
 
 describe('delivery worker', () => {
   let ctx: TestContext;
+  let originalBaseDelay: number;
 
   beforeEach(async () => {
-    process.env.RETRY_BASE_DELAY_MS = '10000';
+    originalBaseDelay = config.retry.baseDelayMs;
+    config.retry.baseDelayMs = 10_000;
     ctx = await setupIntegration();
     ctx.worker.start();
   });
 
   afterEach(async () => {
-    delete process.env.RETRY_BASE_DELAY_MS;
+    config.retry.baseDelayMs = originalBaseDelay;
     await teardownIntegration(ctx);
   });
 
