@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { getEvent, listEventsWithSummaries } from '../models/event';
+import { createEvent, getEvent, listEventsWithSummaries } from '../models/event';
 import { listDeliveriesByEvent, resetDeliveryForManualRetry } from '../models/delivery';
 import { listAttemptsByDelivery } from '../models/deliveryAttempt';
 import { createSubscription, deactivateSubscription, listSubscriptions, toPublicSubscription } from '../models/subscription';
 import { isSupportedPattern } from '../utils/patternMatch';
+import { dispatchEvent } from '../worker/dispatcher';
 import { eventDetailPage, eventsPage, subscriptionsPage } from './templates';
 
 export const dashboardRouter = Router();
@@ -25,6 +26,28 @@ dashboardRouter.get('/events/:id', (req, res) => {
     attempts: listAttemptsByDelivery(delivery.id)
   }));
   res.send(eventDetailPage(event, deliveries));
+});
+
+dashboardRouter.post('/dashboard/events', (req, res) => {
+  const eventType = typeof req.body.eventType === 'string' ? req.body.eventType.trim() : '';
+  const payloadText = typeof req.body.payload === 'string' ? req.body.payload.trim() : '';
+
+  if (!eventType || !payloadText) {
+    return res.redirect('/events');
+  }
+
+  try {
+    const payload = JSON.parse(payloadText);
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return res.redirect('/events');
+    }
+
+    const event = createEvent({ eventType, payload });
+    dispatchEvent(event.id, event.eventType);
+    return res.redirect(`/events/${event.id}`);
+  } catch {
+    return res.redirect('/events');
+  }
 });
 
 dashboardRouter.post('/dashboard/subscriptions', (req, res) => {

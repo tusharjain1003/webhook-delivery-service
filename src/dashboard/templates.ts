@@ -90,6 +90,16 @@ export function eventsPage(events: EventWithSummary[], filter = ''): string {
     'Events',
     `<h1>Events</h1>
     <section class="panel">
+      <h2>Send Test Event</h2>
+      <form method="post" action="/dashboard/events">
+        <div class="grid">
+          <label>Event Type<input name="eventType" required value="order.created"></label>
+          <label>Payload JSON<input name="payload" required value='{"orderId":"demo-1","amount":99.99}'></label>
+          <button type="submit">Send</button>
+        </div>
+      </form>
+    </section>
+    <section class="panel">
       <form method="get" action="/events">
         <div class="grid">
           <label>Event Type<input name="eventType" value="${escapeHtml(filter)}" placeholder="order.created"></label>

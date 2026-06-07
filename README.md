@@ -272,7 +272,7 @@ http://localhost:3001
 Dashboard pages:
 
 - `/` lists active subscriptions and includes a create subscription form.
-- `/events` lists ingested events with delivery summaries.
+- `/events` lists ingested events with delivery summaries and includes a send-test-event form.
 - `/events/:id` shows event payload, matching deliveries, attempt history, and retry buttons.
 
 Dashboard routes are intentionally unauthenticated because this is a local take-home service. Browser forms call dashboard routes directly rather than `/api/*`, because plain HTML forms cannot attach the custom `X-API-Key` header.
@@ -291,14 +291,18 @@ Terminal 2: start the local receiver.
 RECEIVER_SECRET=test-secret npm run receiver
 ```
 
-Terminal 3: create a subscription and send an event.
+Terminal 3: create a subscription.
 
 ```bash
 curl -X POST http://localhost:3001/api/subscriptions \
   -H "Content-Type: application/json" \
   -H "X-API-Key: dev-api-key" \
   -d '{"url":"http://localhost:4000/webhook","secret":"test-secret","eventTypes":["order.*"]}'
+```
 
+Then open `http://localhost:3001/events` and use the Send Test Event form, or send an event with curl:
+
+```bash
 curl -X POST http://localhost:3001/api/events \
   -H "Content-Type: application/json" \
   -H "X-API-Key: dev-api-key" \

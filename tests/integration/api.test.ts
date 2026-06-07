@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDelivery, forceDeliveryStatus } from '../../src/models/delivery';
-import { createEvent } from '../../src/models/event';
+import { createDelivery, forceDeliveryStatus, listDeliveriesByEvent } from '../../src/models/delivery';
+import { createEvent, getEvent } from '../../src/models/event';
 import { createSubscription } from '../../src/models/subscription';
 import { apiFetch, setupIntegration, teardownIntegration, type TestContext } from './helpers';
 
@@ -67,6 +67,29 @@ describe('api', () => {
     expect(response.status).toBe(202);
     const body = await response.json();
     expect(body.deliveriesQueued).toBe(1);
+  });
+
+  it('creates and dispatches test events from the dashboard form', async () => {
+    createSubscription({ url: 'http://example.com/webhook', eventTypes: ['order.*'] });
+
+    const response = await fetch(`${ctx.baseUrl}/dashboard/events`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        eventType: 'order.created',
+        payload: '{"orderId":"demo-1","amount":99.99}'
+      })
+    });
+
+    expect(response.status).toBe(302);
+    const location = response.headers.get('location');
+    expect(location).toMatch(/^\/events\//);
+
+    const eventId = location?.split('/').pop() ?? '';
+    const event = getEvent(eventId);
+    expect(event?.eventType).toBe('order.created');
+    expect(listDeliveriesByEvent(eventId)).toHaveLength(1);
   });
 
   it('validates json bodies', async () => {
