@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../src/config';
-import { createDelivery, forceDeliveryStatus, recoverInProgressDeliveriesOnStartup } from '../../src/models/delivery';
+import { createDelivery, forceDeliveryStatus, getDelivery, reapStaleInProgressDeliveries, recoverInProgressDeliveriesOnStartup } from '../../src/models/delivery';
 import { listAttemptsByDelivery } from '../../src/models/deliveryAttempt';
 import { createEvent } from '../../src/models/event';
 import { createSubscription } from '../../src/models/subscription';
@@ -15,7 +15,6 @@ describe('delivery worker', () => {
     originalBaseDelay = config.retry.baseDelayMs;
     config.retry.baseDelayMs = 10_000;
     ctx = await setupIntegration();
-    ctx.worker.start();
   });
 
   afterEach(async () => {
@@ -24,6 +23,7 @@ describe('delivery worker', () => {
   });
 
   it('delivers successful webhooks and logs attempts', async () => {
+    ctx.worker.start();
     const subscriber = await startSubscriber(200);
     await apiFetch(ctx.baseUrl, '/api/subscriptions', {
       method: 'POST',
@@ -51,6 +51,7 @@ describe('delivery worker', () => {
   });
 
   it('retries 500 responses by returning delivery to pending', async () => {
+    ctx.worker.start();
     const subscriber = await startSubscriber(500);
     await apiFetch(ctx.baseUrl, '/api/subscriptions', {
       method: 'POST',
@@ -68,6 +69,7 @@ describe('delivery worker', () => {
   });
 
   it('marks permanent 400 responses as failed', async () => {
+    ctx.worker.start();
     const subscriber = await startSubscriber(400);
     await apiFetch(ctx.baseUrl, '/api/subscriptions', {
       method: 'POST',
@@ -90,5 +92,22 @@ describe('delivery worker', () => {
     forceDeliveryStatus(delivery.id, 'in_progress');
 
     expect(recoverInProgressDeliveriesOnStartup()).toBe(1);
+  });
+
+  it('reaps stale in-progress deliveries without touching fresh ones', () => {
+    const subscription = createSubscription({ url: 'http://example.com/webhook', eventTypes: ['order.*'] });
+    const oldEvent = createEvent({ eventType: 'order.created', payload: { id: 'old' } });
+    const oldDelivery = createDelivery({ eventId: oldEvent.id, subscriptionId: subscription.id });
+    forceDeliveryStatus(oldDelivery.id, 'in_progress', '2000-01-01 00:00:00');
+
+    expect(reapStaleInProgressDeliveries(60)).toBe(1);
+    expect(getDelivery(oldDelivery.id)?.status).toBe('pending');
+
+    const freshEvent = createEvent({ eventType: 'order.created', payload: { id: 'fresh' } });
+    const freshDelivery = createDelivery({ eventId: freshEvent.id, subscriptionId: subscription.id });
+    forceDeliveryStatus(freshDelivery.id, 'in_progress');
+
+    expect(reapStaleInProgressDeliveries(60)).toBe(0);
+    expect(getDelivery(freshDelivery.id)?.status).toBe('in_progress');
   });
 });

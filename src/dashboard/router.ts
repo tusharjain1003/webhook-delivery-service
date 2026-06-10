@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { createEvent, getEvent, listEventsWithSummaries } from '../models/event';
+import { createEventWithDeliveries, getEvent, listEventsWithSummaries } from '../models/event';
 import { listDeliveriesByEvent, resetDeliveryForManualRetry } from '../models/delivery';
 import { listAttemptsByDelivery } from '../models/deliveryAttempt';
 import { createSubscription, deactivateSubscription, listSubscriptions, toPublicSubscription } from '../models/subscription';
 import { isSupportedPattern } from '../utils/patternMatch';
-import { dispatchEvent } from '../worker/dispatcher';
+import { wakeDispatcher } from '../worker/dispatcher';
 import { eventDetailPage, eventsPage, subscriptionsPage } from './templates';
 
 export const dashboardRouter = Router();
@@ -42,8 +42,8 @@ dashboardRouter.post('/dashboard/events', (req, res) => {
       return res.redirect('/events');
     }
 
-    const event = createEvent({ eventType, payload });
-    dispatchEvent(event.id, event.eventType);
+    const { event } = createEventWithDeliveries({ eventType, payload });
+    wakeDispatcher();
     return res.redirect(`/events/${event.id}`);
   } catch {
     return res.redirect('/events');

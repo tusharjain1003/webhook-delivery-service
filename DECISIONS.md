@@ -4,9 +4,15 @@
 
 I chose SQLite with `better-sqlite3`. I considered Postgres, Redis-backed queues, and an embedded queue package. I rejected them because the assignment asks for a local single-process service that survives restarts without extra infrastructure. The tradeoff is that this is intentionally not a horizontally scalable queue, but the persistence model is easy to inspect and reliable for the take-home scope.
 
+Event ingest and delivery fan-out run in a single `better-sqlite3` transaction: the event row is inserted, active matching subscriptions are selected, and delivery rows are inserted before the route returns. The worker wake signal happens after the transaction commits, so the worker never claims partially-created fan-out.
+
 ## Concurrency And Worker Model
 
-I chose an in-process async worker that claims pending deliveries with `UPDATE ... RETURNING` and performs outbound `fetch` calls concurrently. I considered a separate worker process, Node worker threads, and BullMQ/Celery-style queues. I rejected them because webhook delivery is I/O-bound and Node's event loop handles this well enough here. A clean shutdown waits for in-flight work; an unclean crash may leave rows as `in_progress`, so startup recovery moves them back to `pending` for at-least-once delivery.
+I chose an in-process async worker that claims pending deliveries with `UPDATE ... RETURNING` and performs outbound `fetch` calls concurrently. I considered a separate worker process, Node worker threads, and BullMQ/Celery-style queues. I rejected them because webhook delivery is I/O-bound and Node's event loop handles this well enough here.
+
+A clean shutdown waits for in-flight work; an unclean crash may leave rows as `in_progress`, so startup recovery moves all of them back to `pending` unconditionally. At startup there is no live in-flight work left in this single process, so an age cutoff would only delay recovery.
+
+While the process is running, the worker also reaps stale `in_progress` rows using an age cutoff. That cutoff must be longer than the outbound HTTP timeout so the reaper does not reclaim a delivery that is still actively being attempted. Both recovery paths preserve at-least-once delivery: a subscriber may receive a duplicate if it handled a request but the service did not persist `success`, so subscribers should deduplicate by event ID.
 
 ## Retry Policy
 

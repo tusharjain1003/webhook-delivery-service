@@ -8,11 +8,15 @@ export function configureDispatcher(wake: () => void): void {
   wakeWorker = wake;
 }
 
+export function wakeDispatcher(): void {
+  wakeWorker?.();
+}
+
 export function dispatchEvent(eventId: string, eventType: string): number {
   const subscriptions = getActiveSubscriptionsForEventType(eventType);
   for (const subscription of subscriptions) {
     createDelivery({ eventId, subscriptionId: subscription.id, maxAttempts: config.retry.maxAttempts });
   }
-  wakeWorker?.();
+  wakeDispatcher();
   return subscriptions.length;
 }

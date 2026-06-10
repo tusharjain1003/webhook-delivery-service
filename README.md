@@ -158,7 +158,7 @@ Defaults:
 
 The service provides at-least-once delivery, not exactly-once delivery.
 
-If the process crashes after a subscriber receives a request but before the service persists `success`, that delivery may be sent again after restart. On startup, any stale `in_progress` delivery is moved back to `pending` and becomes eligible for retry. Subscribers should deduplicate using the `X-Webhook-ID` header, which is the event ID.
+If the process crashes after a subscriber receives a request but before the service persists `success`, that delivery may be sent again after restart. On startup, all `in_progress` deliveries are moved back to `pending` and become eligible for retry. While the process is running, the worker also periodically moves stale `in_progress` deliveries older than `IN_PROGRESS_TIMEOUT_SECONDS` back to `pending`. Subscribers should deduplicate using the `X-Webhook-ID` header, which is the event ID.
 
 ## Payload Signing
 
@@ -341,6 +341,7 @@ Integration tests start local Express servers on random loopback ports and use a
 | `WORKER_POLL_MS` | `1000` | Worker fallback polling interval |
 | `WORKER_BATCH_SIZE` | `10` | Number of deliveries claimed per tick |
 | `WORKER_CONCURRENCY` | `10` | Max concurrent outbound HTTP deliveries |
+| `IN_PROGRESS_TIMEOUT_SECONDS` | `60` | Age cutoff for reaping stale in-progress deliveries; converted to milliseconds, this must be greater than `DELIVERY_TIMEOUT_MS` |
 | `RETRY_MAX_ATTEMPTS` | `5` | Max automatic attempts before exhausted |
 | `RETRY_BASE_DELAY_MS` | `1000` | Base retry delay |
 | `RETRY_MAX_DELAY_MS` | `3600000` | Maximum retry delay |
@@ -398,8 +399,9 @@ npm test
 ## What Works
 
 - Persistent subscriptions, events, deliveries, and attempt logs in SQLite.
+- Event ingest and matching delivery fan-out are committed in one SQLite transaction.
 - Pattern matching with exact, catch-all, and single-level wildcard patterns.
-- In-process worker with atomic claiming, retries, backoff, HMAC signing, and startup recovery.
+- In-process worker with atomic claiming, retries, backoff, HMAC signing, startup recovery, and periodic stale in-progress reaping.
 - Dashboard pages for subscriptions, events, event details, attempts, and manual retries.
 - Local receiver for demos and automated unit/integration coverage.
 

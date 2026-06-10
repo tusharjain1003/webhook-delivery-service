@@ -1,6 +1,14 @@
 import { EventEmitter } from 'events';
 import { config } from '../config';
-import { getDelivery, claimPendingDeliveries, updateDeliveryExhausted, updateDeliveryFailed, updateDeliveryForRetry, updateDeliverySuccess } from '../models/delivery';
+import {
+  getDelivery,
+  claimPendingDeliveries,
+  reapStaleInProgressDeliveries,
+  updateDeliveryExhausted,
+  updateDeliveryFailed,
+  updateDeliveryForRetry,
+  updateDeliverySuccess
+} from '../models/delivery';
 import { createAttempt } from '../models/deliveryAttempt';
 import { getEvent } from '../models/event';
 import { getSubscription } from '../models/subscription';
@@ -53,6 +61,7 @@ export class DeliveryWorker {
 
   private async loop(): Promise<void> {
     while (this.running) {
+      reapStaleInProgressDeliveries(config.worker.inProgressTimeoutSeconds);
       const deliveries = claimPendingDeliveries(config.worker.batchSize);
       if (deliveries.length === 0) {
         await this.sleepOrWake(config.worker.pollIntervalMs);

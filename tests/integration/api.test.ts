@@ -67,6 +67,7 @@ describe('api', () => {
     expect(response.status).toBe(202);
     const body = await response.json();
     expect(body.deliveriesQueued).toBe(1);
+    expect(listDeliveriesByEvent(body.id)).toHaveLength(1);
   });
 
   it('creates and dispatches test events from the dashboard form', async () => {

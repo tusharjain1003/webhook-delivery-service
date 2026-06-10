@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { dispatchEvent } from '../worker/dispatcher';
-import { createEvent, getEvent, listEventsWithSummaries } from '../models/event';
+import { wakeDispatcher } from '../worker/dispatcher';
+import { createEventWithDeliveries, getEvent, listEventsWithSummaries } from '../models/event';
 import { getDeliverySummary } from '../models/delivery';
 import { isPlainObject, requireJson } from './validation';
 
@@ -12,8 +12,8 @@ eventsRouter.post('/', (req, res) => {
   if (typeof eventType !== 'string' || eventType.length === 0) return res.status(400).json({ error: 'eventType is required' });
   if (!isPlainObject(payload)) return res.status(400).json({ error: 'payload must be an object' });
 
-  const event = createEvent({ eventType, payload });
-  const deliveriesQueued = dispatchEvent(event.id, event.eventType);
+  const { event, deliveriesQueued } = createEventWithDeliveries({ eventType, payload });
+  wakeDispatcher();
   res.status(202).json({ ...event, deliveriesQueued });
 });
 

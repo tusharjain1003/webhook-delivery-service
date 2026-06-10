@@ -133,7 +133,26 @@ export function recoverInProgressDeliveriesOnStartup(): number {
   return result.changes;
 }
 
-export function forceDeliveryStatus(id: string, status: DeliveryStatus): void {
+export function reapStaleInProgressDeliveries(timeoutSeconds: number): number {
+  const result = getDb()
+    .prepare(`
+      UPDATE deliveries
+      SET status = 'pending', next_attempt_at = datetime('now'), updated_at = datetime('now')
+      WHERE status = 'in_progress'
+        AND updated_at < datetime('now', '-' || ? || ' seconds')
+    `)
+    .run(timeoutSeconds);
+  return result.changes;
+}
+
+export function forceDeliveryStatus(id: string, status: DeliveryStatus, updatedAt?: string): void {
+  if (updatedAt) {
+    getDb()
+      .prepare('UPDATE deliveries SET status = ?, updated_at = ? WHERE id = ?')
+      .run(status, updatedAt, id);
+    return;
+  }
+
   getDb()
     .prepare("UPDATE deliveries SET status = ?, updated_at = datetime('now') WHERE id = ?")
     .run(status, id);
