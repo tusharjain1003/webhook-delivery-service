@@ -54,6 +54,7 @@ describe('delivery worker', () => {
         'test-secret'
       )
     ).toBe(true);
+    expect(delivery.attemptCount).toBe(1);
     expect(listAttemptsByDelivery(delivery.id)).toHaveLength(1);
     await subscriber.close();
   });

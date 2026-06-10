@@ -45,10 +45,14 @@ export function claimPendingDeliveries(limit: number): Delivery[] {
     .map(mapDelivery);
 }
 
-export function updateDeliverySuccess(id: string): void {
+export function updateDeliverySuccess(id: string, attemptCount: number): void {
   getDb()
-    .prepare("UPDATE deliveries SET status = 'success', next_attempt_at = NULL, updated_at = datetime('now') WHERE id = ?")
-    .run(id);
+    .prepare(`
+      UPDATE deliveries
+      SET status = 'success', attempt_count = ?, next_attempt_at = NULL, updated_at = datetime('now')
+      WHERE id = ?
+    `)
+    .run(attemptCount, id);
 }
 
 export function updateDeliveryForRetry(id: string, attemptCount: number, nextAttemptAt: string): void {

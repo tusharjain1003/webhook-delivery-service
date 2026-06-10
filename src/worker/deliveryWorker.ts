@@ -191,7 +191,7 @@ export class DeliveryWorker {
     }
 
     if (statusCode !== null && statusCode >= 200 && statusCode < 300) {
-      updateDeliverySuccess(delivery.id);
+      updateDeliverySuccess(delivery.id, attemptNumber);
       return;
     }
 
