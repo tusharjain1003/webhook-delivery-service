@@ -18,11 +18,18 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
     }
   }
 
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return res.status(400).json({ ok: false, error: 'invalid_json' });
+  }
+
   console.log('Received webhook', {
     id: req.header('x-webhook-id'),
     timestamp,
     signature,
-    body: JSON.parse(rawBody)
+    body
   });
   res.status(status).json({ ok: status >= 200 && status < 300 });
 });

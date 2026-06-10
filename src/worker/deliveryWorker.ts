@@ -42,7 +42,7 @@ export class DeliveryWorker {
       for (const controller of this.activeControllers) {
         controller.abort();
       }
-      await this.loopPromise;
+      await this.loopPromise?.catch(() => undefined);
     }
   }
 
@@ -54,21 +54,32 @@ export class DeliveryWorker {
       timeout = setTimeout(() => resolve('timeout'), timeoutMs);
     });
 
-    const result = await Promise.race([this.loopPromise.then(() => 'stopped' as const), timeoutPromise]);
+    const loopResult = this.loopPromise.then(
+      () => 'stopped' as const,
+      () => 'crashed' as const
+    );
+    const result = await Promise.race([loopResult, timeoutPromise]);
     if (timeout) clearTimeout(timeout);
-    return result === 'stopped';
+    return result === 'stopped' || result === 'crashed';
   }
 
   private async loop(): Promise<void> {
     while (this.running) {
-      reapStaleInProgressDeliveries(config.worker.inProgressTimeoutSeconds);
-      const deliveries = claimPendingDeliveries(config.worker.batchSize);
-      if (deliveries.length === 0) {
-        await this.sleepOrWake(config.worker.pollIntervalMs);
-        continue;
-      }
+      try {
+        reapStaleInProgressDeliveries(config.worker.inProgressTimeoutSeconds);
+        const deliveries = claimPendingDeliveries(config.worker.batchSize);
+        if (deliveries.length === 0) {
+          await this.sleepOrWake(config.worker.pollIntervalMs);
+          continue;
+        }
 
-      await this.processWithLimit(deliveries, config.worker.concurrency);
+        await this.processWithLimit(deliveries, config.worker.concurrency);
+      } catch (error) {
+        console.error('Delivery worker loop iteration failed', error);
+        if (this.running) {
+          await this.sleepOrWake(config.worker.pollIntervalMs);
+        }
+      }
     }
   }
 

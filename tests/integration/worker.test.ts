@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../../src/config';
+import { closeDb } from '../../src/db/connection';
 import { createDelivery, forceDeliveryStatus, getDelivery, reapStaleInProgressDeliveries, recoverInProgressDeliveriesOnStartup } from '../../src/models/delivery';
 import { listAttemptsByDelivery } from '../../src/models/deliveryAttempt';
 import { createEvent } from '../../src/models/event';
@@ -10,15 +11,22 @@ import { apiFetch, setupIntegration, startSubscriber, teardownIntegration, waitF
 describe('delivery worker', () => {
   let ctx: TestContext;
   let originalBaseDelay: number;
+  let originalPollInterval: number;
+  let originalDbPath: string;
 
   beforeEach(async () => {
     originalBaseDelay = config.retry.baseDelayMs;
+    originalPollInterval = config.worker.pollIntervalMs;
+    originalDbPath = config.db.path;
     config.retry.baseDelayMs = 10_000;
     ctx = await setupIntegration();
   });
 
   afterEach(async () => {
     config.retry.baseDelayMs = originalBaseDelay;
+    config.worker.pollIntervalMs = originalPollInterval;
+    config.db.path = originalDbPath;
+    vi.restoreAllMocks();
     await teardownIntegration(ctx);
   });
 
@@ -109,5 +117,22 @@ describe('delivery worker', () => {
 
     expect(reapStaleInProgressDeliveries(60)).toBe(0);
     expect(getDelivery(freshDelivery.id)?.status).toBe('in_progress');
+  });
+
+  it('keeps running when a worker loop database call throws', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    closeDb();
+    config.db.path = '/dev/null/webhooks.db';
+    config.worker.pollIntervalMs = 10;
+
+    ctx.worker.start();
+
+    const deadline = Date.now() + 500;
+    while (consoleError.mock.calls.length === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    expect(consoleError).toHaveBeenCalledWith('Delivery worker loop iteration failed', expect.any(Error));
+    await expect(ctx.worker.stop()).resolves.toBeUndefined();
   });
 });

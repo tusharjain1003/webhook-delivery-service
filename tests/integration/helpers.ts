@@ -13,8 +13,8 @@ export interface TestContext {
 }
 
 export async function setupIntegration(): Promise<TestContext> {
-  openDb(':memory:');
-  initializeSchema(openDb(':memory:'));
+  const db = openDb(':memory:');
+  initializeSchema(db);
   const worker = new DeliveryWorker();
   const app = createApp(worker);
   const server = await new Promise<http.Server>((resolve) => {
